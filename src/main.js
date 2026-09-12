@@ -332,7 +332,7 @@ function handleCsvText(text) {
 
 async function loadSampleData() {
   try {
-    const text = await fetchCsvFromUrl('/sample-data.csv');
+    const text = await fetchCsvFromUrl(`${import.meta.env.BASE_URL}sample-data.csv`);
     handleCsvText(text);
   } catch (error) {
     console.error(error);
