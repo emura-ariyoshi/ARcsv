@@ -1,6 +1,10 @@
 import './style.css';
 import { BrowserQRCodeReader } from '@zxing/browser';
-import { parseCsv, fetchCsvFromUrl } from './ar-utils.js';
+import {
+  parseCsv,
+  fetchCsvFromUrl,
+  wgs84ToPlaneRectangularZoneIII,
+} from './ar-utils.js';
 
 const elements = {
   camera: document.querySelector('#camera'),
@@ -169,7 +173,8 @@ function updateMarkers() {
 function onGeoSuccess(position) {
   const { latitude, longitude, heading } = position.coords;
   state.userLocation = { latitude, longitude };
-  setLocationStatus(`${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
+  const planePosition = wgs84ToPlaneRectangularZoneIII(latitude, longitude);
+  setLocationStatus(`X ${planePosition.x.toFixed(1)} / Y ${planePosition.y.toFixed(1)}`);
 
   if (typeof heading === 'number' && Number.isFinite(heading)) {
     state.heading = heading;
@@ -321,13 +326,18 @@ function loadPoints(points) {
 }
 
 function handleCsvText(text) {
-  const parsed = parseCsv(text);
-  if (!parsed.length) {
-    setLocationStatus('CSVの形式が正しくありません');
-    return;
-  }
+  try {
+    const parsed = parseCsv(text);
+    if (parsed.length) {
+      loadPoints(parsed);
+      return;
+    }
 
-  loadPoints(parsed);
+    setLocationStatus('CSVの形式が正しくありません');
+  } catch (error) {
+    console.error(error);
+    setLocationStatus('CSVを読み込めませんでした');
+  }
 }
 
 async function loadSampleData() {
