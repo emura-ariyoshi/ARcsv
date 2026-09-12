@@ -58,7 +58,7 @@ name,latitude,longitude
 
 ```csv
 name,X,Y
-東京タワー,-24357.1,490255.5
+東京タワー,490255.5,102742.9
 ```
 
 `X,Y`、`X座標,Y座標`、`northing,easting` の列名に対応しています。

@@ -2,7 +2,7 @@ import proj4 from 'proj4';
 
 const PLANE_RECTANGULAR_ZONE_III = 'JGD2011 / Japan Plane Rectangular CS III';
 
-proj4.defs(PLANE_RECTANGULAR_ZONE_III, '+proj=tmerc +lat_0=36 +lon_0=134.3333333333333 +k=0.9999 +x_0=0 +y_0=0 +ellps=GRS80 +units=m +no_defs');
+proj4.defs(PLANE_RECTANGULAR_ZONE_III, '+proj=tmerc +lat_0=36 +lon_0=132.1666666666667 +k=0.9999 +x_0=0 +y_0=0 +ellps=GRS80 +units=m +no_defs');
 
 export function wgs84ToPlaneRectangularZoneIII(latitude, longitude) {
   const [y, x] = proj4(
