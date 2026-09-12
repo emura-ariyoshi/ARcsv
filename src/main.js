@@ -346,7 +346,15 @@ async function handleCsvUpload(event) {
     return;
   }
 
-  const text = await file.text();
+  const buffer = await file.arrayBuffer();
+  let text;
+
+  try {
+    text = new TextDecoder('utf-8', { fatal: true }).decode(buffer);
+  } catch {
+    text = new TextDecoder('shift_jis').decode(buffer);
+  }
+
   handleCsvText(text);
 }
 
