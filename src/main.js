@@ -1,5 +1,4 @@
 import './style.css';
-import { BrowserQRCodeReader } from '@zxing/browser';
 import {
   parseCsv,
   fetchCsvFromUrl,
@@ -10,13 +9,15 @@ const elements = {
   camera: document.querySelector('#camera'),
   scene: document.querySelector('#ar-scene'),
   heading: document.querySelector('#heading-status'),
-  qr: document.querySelector('#qr-status'),
   location: document.querySelector('#location-status'),
+  guidance: document.querySelector('#guidance'),
+  guidanceArrow: document.querySelector('#guidance-arrow'),
+  guidanceTarget: document.querySelector('#guidance-target'),
+  guidanceDetail: document.querySelector('#guidance-detail'),
   pointList: document.querySelector('#point-list'),
   startButton: document.querySelector('#start-button'),
   uploadInput: document.querySelector('#csv-upload'),
   sampleButton: document.querySelector('#sample-button'),
-  scanButton: document.querySelector('#scan-button'),
 };
 
 const state = {
@@ -25,9 +26,6 @@ const state = {
   markers: [],
   points: [],
   mediaStream: null,
-  qrControls: null,
-  qrScanHandled: false,
-  qrReader: new BrowserQRCodeReader(),
 };
 
 const appState = {
@@ -40,10 +38,6 @@ function setLocationStatus(text) {
 
 function setHeadingStatus(degrees) {
   elements.heading.textContent = `${Math.round(degrees)}°`;
-}
-
-function setQrStatus(text) {
-  elements.qr.textContent = text;
 }
 
 function renderPointList(points) {
@@ -117,10 +111,33 @@ function relativeBearing(targetBearing) {
   return diff;
 }
 
+function updateGuidance(points) {
+  if (!state.userLocation || !points.length) {
+    elements.guidance.classList.remove('active');
+    elements.guidanceTarget.textContent = '地点を読み込んでください';
+    elements.guidanceDetail.textContent = 'GPS取得後に方向を表示します';
+    return;
+  }
+
+  const target = points.reduce((nearest, point) => (
+    point.distanceKm < nearest.distanceKm ? point : nearest
+  ));
+  const direction = Math.round(target.diff);
+  const directionText = Math.abs(direction) < 10
+    ? '正面'
+    : direction > 0 ? `${direction}°右` : `${Math.abs(direction)}°左`;
+
+  elements.guidance.classList.add('active');
+  elements.guidanceTarget.textContent = target.label;
+  elements.guidanceDetail.textContent = `${target.distanceKm.toFixed(1)} km / ${directionText}`;
+  elements.guidanceArrow.style.transform = `rotate(${target.diff}deg)`;
+}
+
 function updateMarkers() {
   elements.scene.innerHTML = '';
 
   if (!state.userLocation || !state.points.length) {
+    updateGuidance([]);
     return;
   }
 
@@ -128,7 +145,7 @@ function updateMarkers() {
   const viewHeight = window.innerHeight;
   const maxDistance = 10;
 
-  const enriched = state.points.map((point) => {
+  const allPoints = state.points.map((point) => {
     const distanceKm = haversineKm(
       state.userLocation.latitude,
       state.userLocation.longitude,
@@ -150,7 +167,11 @@ function updateMarkers() {
       distanceKm,
       diff,
     };
-  }).filter((point) => point.distanceKm <= maxDistance && Math.abs(point.diff) <= 70);
+  });
+
+  updateGuidance(allPoints);
+
+  const enriched = allPoints.filter((point) => point.distanceKm <= maxDistance && Math.abs(point.diff) <= 70);
 
   enriched.sort((a, b) => a.distanceKm - b.distanceKm);
 
@@ -167,7 +188,8 @@ function updateMarkers() {
     marker.classList.add('visible');
   });
 
-  renderPointList(enriched);
+  allPoints.sort((a, b) => a.distanceKm - b.distanceKm);
+  renderPointList(allPoints);
 }
 
 function onGeoSuccess(position) {
@@ -206,8 +228,6 @@ function setCompassHeading(event) {
 
 async function startCameraAndSensors() {
   if (appState.isStarted) {
-    state.qrScanHandled = false;
-    startQrScanner();
     return;
   }
 
@@ -228,7 +248,6 @@ async function startCameraAndSensors() {
     elements.camera.style.opacity = '1';
     elements.startButton.textContent = 'AR起動中';
     setLocationStatus('カメラ起動中');
-    await startQrScanner();
   } catch (error) {
     console.error(error);
     elements.startButton.textContent = 'AR開始';
@@ -246,75 +265,6 @@ async function startCameraAndSensors() {
 
   window.addEventListener('deviceorientation', setCompassHeading, true);
   window.addEventListener('deviceorientationabsolute', setCompassHeading, true);
-}
-
-async function startQrScanner() {
-  if (!state.mediaStream || state.qrControls) {
-    return;
-  }
-
-  setQrStatus('読み取り中');
-  state.qrScanHandled = false;
-  try {
-    state.qrControls = await state.qrReader.decodeFromStream(
-      state.mediaStream,
-      elements.camera,
-      (result) => {
-        if (!result || state.qrScanHandled) {
-          return;
-        }
-
-        state.qrScanHandled = true;
-        state.qrControls?.stop();
-        state.qrControls = null;
-        setQrStatus('読込済み');
-        handleQrContent(result.getText());
-      },
-    );
-  } catch (error) {
-    console.error(error);
-    setQrStatus('読み取り失敗');
-  }
-}
-
-async function handleQrContent(content) {
-  const value = content.trim();
-  if (!value) {
-    setQrStatus('空のQRです');
-    return;
-  }
-
-  if (value.includes('\n') && value.toLowerCase().includes('latitude')) {
-    handleCsvText(value);
-    return;
-  }
-
-  try {
-    const parsed = JSON.parse(value);
-    if (Array.isArray(parsed)) {
-      loadPoints(parsed);
-      return;
-    }
-    if (typeof parsed.csvUrl === 'string') {
-      await loadCsvUrl(parsed.csvUrl);
-      return;
-    }
-  } catch {
-    // QR content is commonly a URL, so JSON parsing is optional.
-  }
-
-  try {
-    await loadCsvUrl(value);
-  } catch (error) {
-    console.error(error);
-    setQrStatus('CSV URLではありません');
-  }
-}
-
-async function loadCsvUrl(url) {
-  const text = await fetchCsvFromUrl(url);
-  handleCsvText(text);
-  setQrStatus('CSV読込済み');
 }
 
 function loadPoints(points) {
@@ -371,7 +321,6 @@ async function handleCsvUpload(event) {
 window.addEventListener('resize', updateMarkers);
 
 elements.startButton.addEventListener('click', startCameraAndSensors);
-elements.scanButton.addEventListener('click', startCameraAndSensors);
 elements.sampleButton.addEventListener('click', loadSampleData);
 elements.uploadInput.addEventListener('change', handleCsvUpload);
 

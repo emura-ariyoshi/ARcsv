@@ -9,8 +9,8 @@
     <meta name="apple-mobile-web-app-title" content="AR CSV" />
     <link rel="manifest" href="./manifest.webmanifest" />
     <title>AR CSV Viewer</title>
-    <script type="module" crossorigin src="./assets/index-CDO1mHqo.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-CGFZLE3Y.css">
+    <script type="module" crossorigin src="./assets/index-bcLvrhjK.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-BNTorXS9.css">
   </head>
   <body>
     <div id="app">
@@ -18,6 +18,13 @@
         <video id="camera" autoplay playsinline muted></video>
         <div id="ar-scene" aria-live="polite"></div>
         <div class="reticle"></div>
+        <div id="guidance" class="guidance" aria-live="polite">
+          <span id="guidance-arrow" class="guidance-arrow" aria-hidden="true">↑</span>
+          <div>
+            <strong id="guidance-target">地点を読み込んでください</strong>
+            <span id="guidance-detail">GPS取得後に方向を表示します</span>
+          </div>
+        </div>
       </div>
 
       <div class="hud">
@@ -30,17 +37,12 @@
             <p class="label">方向</p>
             <strong id="heading-status">0°</strong>
           </div>
-          <div>
-            <p class="label">QR</p>
-            <strong id="qr-status">未読込</strong>
-          </div>
         </div>
 
         <div class="panel controls">
           <button id="start-button" type="button">AR開始</button>
           <label class="upload-button" for="csv-upload">CSV読み込み</label>
           <input id="csv-upload" type="file" accept=".csv,text/csv" />
-          <button id="scan-button" type="button" class="secondary">QR読み取り</button>
           <button id="sample-button" type="button" class="secondary">サンプル表示</button>
         </div>
 

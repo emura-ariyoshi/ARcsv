@@ -139,6 +139,59 @@ input {
   height: 2px;
 }
 
+.guidance {
+  position: absolute;
+  left: 50%;
+  bottom: 18%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 190px;
+  max-width: calc(100% - 32px);
+  padding: 10px 14px;
+  transform: translateX(-50%) translateY(10px);
+  border: 1px solid rgba(125, 211, 252, 0.45);
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.82);
+  box-shadow: 0 10px 30px rgba(2, 6, 23, 0.45);
+  backdrop-filter: blur(10px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.guidance.active {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+.guidance-arrow {
+  display: inline-block;
+  color: var(--accent-strong);
+  font-size: 28px;
+  line-height: 1;
+  transform-origin: center;
+  text-shadow: 0 0 14px rgba(56, 189, 248, 0.8);
+}
+
+.guidance strong,
+.guidance span {
+  display: block;
+}
+
+.guidance strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.guidance-detail {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
 #app::before {
   content: '';
   position: absolute;
