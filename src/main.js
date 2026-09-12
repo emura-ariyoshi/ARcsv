@@ -1,4 +1,5 @@
 import './style.css';
+import { parseCsv, fetchCsvFromUrl } from './ar-utils.js';
 
 const elements = {
   camera: document.querySelector('#camera'),
@@ -29,42 +30,6 @@ function setLocationStatus(text) {
 
 function setHeadingStatus(degrees) {
   elements.heading.textContent = `${Math.round(degrees)}°`;
-}
-
-function parseCsv(text) {
-  const lines = text.trim().split(/\r?\n/).filter(Boolean);
-  if (lines.length < 2) return [];
-
-  const [headerLine, ...rows] = lines;
-  const columns = headerLine.split(',').map((label) => label.trim().toLowerCase());
-
-  return rows.map((row) => {
-    const values = row.split(',').map((value) => value.trim());
-    const item = {};
-
-    columns.forEach((col, index) => {
-      item[col] = values[index] ?? '';
-    });
-
-    const lat = Number(item.latitude ?? item.lat ?? item.y);
-    const lng = Number(item.longitude ?? item.lng ?? item.lon ?? item.x);
-    const label = item.name ?? item.label ?? item.title ?? '地点';
-
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-      return null;
-    }
-
-    return { label, latitude: lat, longitude: lng };
-  }).filter(Boolean);
-}
-
-function fetchCsvFromUrl(url) {
-  return fetch(url).then((response) => {
-    if (!response.ok) {
-      throw new Error(`CSVの取得に失敗しました: ${response.status}`);
-    }
-    return response.text();
-  });
 }
 
 function renderPointList(points) {
@@ -191,7 +156,7 @@ function updateMarkers() {
 function onGeoSuccess(position) {
   const { latitude, longitude, heading } = position.coords;
   state.userLocation = { latitude, longitude };
-    setLocationStatus(`${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
+  setLocationStatus(`${latitude.toFixed(5)}, ${longitude.toFixed(5)}`);
 
   if (typeof heading === 'number' && Number.isFinite(heading)) {
     state.heading = heading;
@@ -227,6 +192,8 @@ async function startCameraAndSensors() {
   }
 
   appState.isStarted = true;
+  elements.startButton.textContent = '起動中...';
+  setLocationStatus('カメラを起動しています');
 
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
@@ -238,10 +205,14 @@ async function startCameraAndSensors() {
 
     state.mediaStream = stream;
     elements.camera.srcObject = stream;
+    elements.camera.style.opacity = '1';
+    elements.startButton.textContent = 'AR起動中';
     setLocationStatus('カメラ起動中');
   } catch (error) {
     console.error(error);
+    elements.startButton.textContent = 'AR開始';
     setLocationStatus('カメラアクセスを許可してください');
+    return;
   }
 
   if (navigator.geolocation) {
