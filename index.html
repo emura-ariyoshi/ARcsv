@@ -50,5 +50,12 @@
     </div>
 
     <script type="module" src="/src/main.js"></script>
+    <script>
+      const sourceEntry = document.querySelector('script[src="/src/main.js"]');
+      const isGithubPages = window.location.hostname.endsWith('github.io');
+      if (sourceEntry && isGithubPages && !window.location.pathname.endsWith('/dist/')) {
+        window.location.replace(`${window.location.pathname.replace(/\/$/, '')}/dist/`);
+      }
+    </script>
   </body>
 </html>

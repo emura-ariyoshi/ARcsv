@@ -36,6 +36,8 @@ GitHub Pages では `vite.config.js` の `base: './'` を使うことで、相�
 
 公開時は、必ず `npm run build` で生成した `dist` の内容をGitHub Pagesの公開対象へ反映してください。GitHub Actionsを使う場合は、リポジトリのActions設定でViteのビルド結果をPagesへデプロイします。公開後に古い画面が表示される場合は、スマートフォンでページを再読み込みし、ブラウザのキャッシュも更新してください。
 
+GitHub Pagesの設定は、Settings → Pages → Build and deployment → Sourceで `GitHub Actions` を選択してください。`Deploy to GitHub Pages` workflowが実行されると、`dist`のビルド済み画面が公開されます。
+
 ## 必要なブラウザ権限
 
 - カメラ
