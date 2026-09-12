@@ -171,7 +171,7 @@ input {
   justify-content: space-between;
   gap: 12px;
   padding: 12px 14px;
-  width: min(360px, calc(100% - 16px));
+  width: min(430px, calc(100% - 16px));
 }
 
 .label {
@@ -184,6 +184,10 @@ input {
 
 .top-bar strong {
   font-size: 16px;
+}
+
+.top-bar > div:last-child strong {
+  color: var(--accent);
 }
 
 .controls {

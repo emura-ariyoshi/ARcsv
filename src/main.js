@@ -1,15 +1,18 @@
 import './style.css';
+import { BrowserQRCodeReader } from '@zxing/browser';
 import { parseCsv, fetchCsvFromUrl } from './ar-utils.js';
 
 const elements = {
   camera: document.querySelector('#camera'),
   scene: document.querySelector('#ar-scene'),
   heading: document.querySelector('#heading-status'),
+  qr: document.querySelector('#qr-status'),
   location: document.querySelector('#location-status'),
   pointList: document.querySelector('#point-list'),
   startButton: document.querySelector('#start-button'),
   uploadInput: document.querySelector('#csv-upload'),
   sampleButton: document.querySelector('#sample-button'),
+  scanButton: document.querySelector('#scan-button'),
 };
 
 const state = {
@@ -18,6 +21,9 @@ const state = {
   markers: [],
   points: [],
   mediaStream: null,
+  qrControls: null,
+  qrScanHandled: false,
+  qrReader: new BrowserQRCodeReader(),
 };
 
 const appState = {
@@ -32,6 +38,10 @@ function setHeadingStatus(degrees) {
   elements.heading.textContent = `${Math.round(degrees)}°`;
 }
 
+function setQrStatus(text) {
+  elements.qr.textContent = text;
+}
+
 function renderPointList(points) {
   elements.pointList.innerHTML = '';
 
@@ -44,7 +54,10 @@ function renderPointList(points) {
 
   points.forEach((point) => {
     const li = document.createElement('li');
-    li.innerHTML = `<span>${point.label}</span><span>${point.distanceKm.toFixed(1)} km</span>`;
+    const distance = Number.isFinite(point.distanceKm)
+      ? `${point.distanceKm.toFixed(1)} km`
+      : 'GPS待ち';
+    li.innerHTML = `<span>${point.label}</span><span>${distance}</span>`;
     elements.pointList.appendChild(li);
   });
 }
@@ -188,6 +201,8 @@ function setCompassHeading(event) {
 
 async function startCameraAndSensors() {
   if (appState.isStarted) {
+    state.qrScanHandled = false;
+    startQrScanner();
     return;
   }
 
@@ -208,6 +223,7 @@ async function startCameraAndSensors() {
     elements.camera.style.opacity = '1';
     elements.startButton.textContent = 'AR起動中';
     setLocationStatus('カメラ起動中');
+    await startQrScanner();
   } catch (error) {
     console.error(error);
     elements.startButton.textContent = 'AR開始';
@@ -227,10 +243,81 @@ async function startCameraAndSensors() {
   window.addEventListener('deviceorientationabsolute', setCompassHeading, true);
 }
 
+async function startQrScanner() {
+  if (!state.mediaStream || state.qrControls) {
+    return;
+  }
+
+  setQrStatus('読み取り中');
+  state.qrScanHandled = false;
+  try {
+    state.qrControls = await state.qrReader.decodeFromStream(
+      state.mediaStream,
+      elements.camera,
+      (result) => {
+        if (!result || state.qrScanHandled) {
+          return;
+        }
+
+        state.qrScanHandled = true;
+        state.qrControls?.stop();
+        state.qrControls = null;
+        setQrStatus('読込済み');
+        handleQrContent(result.getText());
+      },
+    );
+  } catch (error) {
+    console.error(error);
+    setQrStatus('読み取り失敗');
+  }
+}
+
+async function handleQrContent(content) {
+  const value = content.trim();
+  if (!value) {
+    setQrStatus('空のQRです');
+    return;
+  }
+
+  if (value.includes('\n') && value.toLowerCase().includes('latitude')) {
+    handleCsvText(value);
+    return;
+  }
+
+  try {
+    const parsed = JSON.parse(value);
+    if (Array.isArray(parsed)) {
+      loadPoints(parsed);
+      return;
+    }
+    if (typeof parsed.csvUrl === 'string') {
+      await loadCsvUrl(parsed.csvUrl);
+      return;
+    }
+  } catch {
+    // QR content is commonly a URL, so JSON parsing is optional.
+  }
+
+  try {
+    await loadCsvUrl(value);
+  } catch (error) {
+    console.error(error);
+    setQrStatus('CSV URLではありません');
+  }
+}
+
+async function loadCsvUrl(url) {
+  const text = await fetchCsvFromUrl(url);
+  handleCsvText(text);
+  setQrStatus('CSV読込済み');
+}
+
 function loadPoints(points) {
   state.points = points;
   updateMarkers();
-  renderPointList([]);
+  if (!state.userLocation) {
+    renderPointList(points);
+  }
 }
 
 function handleCsvText(text) {
@@ -266,6 +353,7 @@ async function handleCsvUpload(event) {
 window.addEventListener('resize', updateMarkers);
 
 elements.startButton.addEventListener('click', startCameraAndSensors);
+elements.scanButton.addEventListener('click', startCameraAndSensors);
 elements.sampleButton.addEventListener('click', loadSampleData);
 elements.uploadInput.addEventListener('change', handleCsvUpload);
 

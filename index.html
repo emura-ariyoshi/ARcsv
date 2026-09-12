@@ -28,12 +28,17 @@
             <p class="label">方向</p>
             <strong id="heading-status">0°</strong>
           </div>
+          <div>
+            <p class="label">QR</p>
+            <strong id="qr-status">未読込</strong>
+          </div>
         </div>
 
         <div class="panel controls">
           <button id="start-button" type="button">AR開始</button>
           <label class="upload-button" for="csv-upload">CSV読み込み</label>
           <input id="csv-upload" type="file" accept=".csv,text/csv" />
+          <button id="scan-button" type="button" class="secondary">QR読み取り</button>
           <button id="sample-button" type="button" class="secondary">サンプル表示</button>
         </div>
 
