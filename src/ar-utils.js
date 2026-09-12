@@ -20,12 +20,15 @@ export function parseCsv(text) {
 
   const delimiter = detectDelimiter(source);
   const records = parseRecords(source, delimiter);
-  if (records.length < 2) return [];
+  if (!records.length) return [];
 
-  const columns = records[0].map(normalizeColumnName);
+  const hasHeader = !isHeaderlessCoordinateRecord(records[0]);
+  const columns = hasHeader
+    ? records[0].map(normalizeColumnName)
+    : ['name', 'planeX', 'planeY'];
+  const dataRecords = hasHeader ? records.slice(1) : records;
 
-  return records
-    .slice(1)
+  return dataRecords
     .filter((values) => values.some((value) => value.trim()))
     .map((values) => {
       const item = {};
@@ -55,6 +58,12 @@ export function parseCsv(text) {
       return { label, latitude, longitude };
     })
     .filter(Boolean);
+}
+
+function isHeaderlessCoordinateRecord(values) {
+  return values.length >= 3
+    && Number.isFinite(parseCoordinate(values[1]))
+    && Number.isFinite(parseCoordinate(values[2]));
 }
 
 function parseCoordinate(value) {
