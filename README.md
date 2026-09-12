@@ -23,6 +23,16 @@
    - ローカル: `http://localhost:5173`
    - スマホ: PCと同じWi-Fi上で端末のIPアドレスを開く
 
+## GitHub Pages での公開
+
+1. GitHub にリポジトリを作成
+2. このプロジェクトを push
+3. GitHub の Settings → Pages で source を `Deploy from a branch` に設定
+4. branch は `main` / `gh-pages` のどちらかを選択
+5. 公開URLをQRコードにする
+
+GitHub Pages では `vite.config.js` の `base: './'` を使うことで、相対パスが正しく解決されます。
+
 ## 必要なブラウザ権限
 
 - カメラ
